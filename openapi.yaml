@@ -1,15 +1,10 @@
 openapi: 3.0.0
 info:
   title: ARTEMIS Gateway API
-  version: "1.0.1"
+  version: "2.0.0"
   description: |
     APIs exposed by the Gateway for the ARTEMIS domain. The Gateway validates access, control access roles, forwards requests to microservices via mTLS.
       
-    **Stage:**
-    ![Stage](https://img.shields.io/badge/Development-blue)
-    
-    **Stage Progress:**
-    ![Progress](https://progress-bar.xyz/0/)
 
 servers:
   - url: /api/v1/iot
@@ -22,65 +17,44 @@ tags:
     description: |
       Lifecycle of nodes (sensors/actuators): registration, updates, listing and search.
       
-      **Implementation state:**
-      ![Stage](https://img.shields.io/badge/Development-blue)
-      ![Progress](https://progress-bar.xyz/100/)
   
   - name: Node Heartbeat
     description: |
       Heartbeat ingestion and history.
       
-      **Implementation state:**
-      ![Stage](https://img.shields.io/badge/Development-blue)
-      ![Progress](https://progress-bar.xyz/100/)
 
   - name: Data
     description: |
       Data ingestion (scalar, spatial, vector, temporal, multimedia) and querying.
       
-      **Implementation state:**
-      ![Stage](https://img.shields.io/badge/Development-blue)
-      ![Progress](https://progress-bar.xyz/40/)
   
   - name: Media
     description: |
       Media listing, download, thumbnails, and exports.
-      
-      **Implementation state:**
-      ![Stage](https://img.shields.io/badge/Development_NOT_started-orange)
-      <!-- ![Progress](https://progress-bar.xyz/0/) -->
+
 
   - name: Decision Rules
     description: |
       Create, update, list and delete complex rules for automation.
-      
-      **Implementation state:**
-      ![Stage](https://img.shields.io/badge/Development_NOT_started-orange)
-      <!-- ![Progress](https://progress-bar.xyz/0/) -->
+
 
   - name: Actuator Commands
     description: | 
-      Send manual commands to actuators and read last command.
-      
-      **Implementation state:**
-      ![Stage](https://img.shields.io/badge/Development_NOT_started-orange)
-      <!-- ![Progress](https://progress-bar.xyz/0/) -->
+      Send manual commands to actuators and read the last command.
+
 
   - name: Enrollment & Device Credentials
     description: |
       Device provisioning using one-time codes and credential management.
-      
-      **Implementation state:**
-      ![Stage](https://img.shields.io/badge/Development-blue)
-      ![Progress](https://progress-bar.xyz/0/)
+
+
+  - name: Control
+    description: |
+      Explicit evaluation of control rules and command dispatch.
   
   - name: Discovery
     description: |
       OpenAPI discovery metadata and useful links.
-      
-      **Implementation state:**
-      ![Stage](https://img.shields.io/badge/Development_NOT_started-orange)
-      <!-- ![Progress](https://progress-bar.xyz/0/) -->
 
 security:
   - bearerIndigo: [ ]
@@ -92,7 +66,7 @@ paths: ###########################################################
     post:
       tags: [ Node Presentation & Registration ]
       summary: Register a New Node / Create a New Device
-      description: "Registers a new sensor/actuator node and creates its entry in the administrative database."
+      description: "Registers a new sensor/actuator node, creates its entry in the administrative database, and automatically assigns MQTT topics server-side."
       security: [ { bearerIndigo: [ ] } ]
       requestBody:
         required: true
@@ -104,19 +78,83 @@ paths: ###########################################################
           description: "Node successfully registered."
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/NodeRegistered' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/Unprocessable' }
-        '500': { $ref: '#/components/responses/ServerError' }
+              schema: { $ref: '#/components/schemas/NodeRegisteredResponse' }
+        '400':
+          description: Invalid request (validation failed or malformed payload).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+              examples:
+                validationFailed:
+                  summary: Validation failed
+                  value:
+                    type: "urn:artemis:error:validation"
+                    title: "Bad Request"
+                    status: 400
+                    detail: "name must not be blank"
+                    instance: "/api/v1/iot/nodes"
+                    errorCode: "VALIDATION_ERROR"
+                    timestamp: "2026-05-28T18:00:00Z"
+                domainError:
+                  summary: Domain exception
+                  value:
+                    type: "urn:artemis:error:400"
+                    title: "Bad Request"
+                    status: 400
+                    detail: "Invalid node data"
+                    instance: "/api/v1/iot/nodes"
+                    errorCode: "HTTP_400"
+                    timestamp: "2026-05-28T18:00:00Z"
+        '409':
+          description: Conflict (node already exists for the given location, rhdtId and type).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+              examples:
+                nodeAlreadyExists:
+                  summary: Node already exists
+                  value:
+                    type: "urn:artemis:error:409"
+                    title: "Conflict"
+                    status: 409
+                    detail: "Node already exists: node_ab12cd34ef"
+                    instance: "/api/v1/iot/nodes"
+                    errorCode: "HTTP_409"
+                    timestamp: "2026-05-28T18:00:00Z"
+        '500':
+          description: Server error (could not generate a unique nodeId).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+              examples:
+                nodeIdGenerationFailed:
+                  summary: Could not generate a unique nodeId
+                  value:
+                    type: "urn:artemis:error:500"
+                    title: "Internal Server Error"
+                    status: 500
+                    detail: "Could not generate a unique nodeId"
+                    instance: "/api/v1/iot/nodes"
+                    errorCode: "HTTP_500"
+                    timestamp: "2026-05-28T18:00:00Z"
     get:
       tags: [ Node Presentation & Registration ]
       summary: List and filter all Registered Nodes
       description: "Retrieves a list of all nodes registered, with summary information. Supports filtering of nodes by type, room, capabilities, etc."
       security: [ { bearerIndigo: [ ] } ]
       parameters:
+        - name: rhdtId
+          in: query
+          description: "Filter by RHDT identifier."
+          schema: { type: string }
+          example: "rhdt-001"
+          required: false
+        - name: owner
+          in: query
+          description: "Filter by node owner."
+          schema: { type: string }
+          example: "owner-a"
+          required: false
         - name: type
           in: query
           description: "Filter by node type."
@@ -139,9 +177,50 @@ paths: ###########################################################
             $ref: '#/components/schemas/StatusNodeValue'
           example: "active"
           required: false
+        - name: enabled
+          in: query
+          description: "Filter by enabled flag."
+          schema: { type: boolean }
+          required: false
+        - name: simulatedNode
+          in: query
+          description: "Filter by simulated node flag."
+          schema: { type: boolean }
+          required: false
+        - name: manufacturer
+          in: query
+          description: "Filter by manufacturer."
+          schema: { type: string }
+          example: "ARTEMIS"
+          required: false
+        - name: firmwareVersion
+          in: query
+          description: "Filter by firmware version."
+          schema: { type: string }
+          example: "1.0.0"
+          required: false
+        - name: registeredFrom
+          in: query
+          description: "Include nodes registered at or after this timestamp."
+          schema: { $ref: '#/components/schemas/Timestamp' }
+          required: false
+        - name: registeredTo
+          in: query
+          description: "Include nodes registered at or before this timestamp."
+          schema: { $ref: '#/components/schemas/Timestamp' }
+          required: false
+        - name: nodeIds
+          in: query
+          description: "Filter by a set of node identifiers."
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items: { type: string }
       responses:
         '200':
-          description: "Search results returned (possibly empty)."
+          description: "Search results returned."
           content:
             application/json:
               schema:
@@ -150,6 +229,7 @@ paths: ###########################################################
                   nodes:
                     type: array
                     items: { $ref: '#/components/schemas/NodeDetails' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '500': { $ref: '#/components/responses/ServerError' }
@@ -179,19 +259,12 @@ paths: ###########################################################
       security: [ { bearerIndigo: [ ] } ]
       parameters:
         - $ref: '#/components/parameters/NodeId'
+        - $ref: '#/components/parameters/XOwner'
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              properties:
-                description:
-                  type: string
-                  description: "The reason why the node is being updated"
-                  example: "Room change"
-                node:
-                  $ref: '#/components/schemas/NodeDetailsRequest'
+            schema: { $ref: '#/components/schemas/UpdateNodeInformationRequest' }
       responses:
         '200':
           description: "Node successfully updated."
@@ -224,7 +297,6 @@ paths: ###########################################################
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/ServerError' }
 
-
   /nodes/{nodeId}/registrationHistory:
     get:
       tags: [ Node Presentation & Registration ]
@@ -245,6 +317,54 @@ paths: ###########################################################
                     type: array
                     items: { $ref: '#/components/schemas/NodeHistory' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /nodes/{nodeId}/manual-override/activate:
+    post:
+      tags: [ Node Presentation & Registration ]
+      summary: Activate manual override
+      description: "Node-service endpoint. Activates manual override for the node and persists the updated operational flags."
+      security: [ { bearerIndigo: [ ] } ]
+      parameters:
+        - $ref: '#/components/parameters/NodeId'
+        - $ref: '#/components/parameters/XOwner'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ManualOverrideRequest' }
+      responses:
+        '200':
+          description: "Manual override activated."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ManualOverrideAck' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /nodes/{nodeId}/manual-override/deactivate:
+    post:
+      tags: [ Node Presentation & Registration ]
+      summary: Deactivate manual override
+      description: "Node-service endpoint. Deactivates manual override for the node and persists the updated operational flags."
+      security: [ { bearerIndigo: [ ] } ]
+      parameters:
+        - $ref: '#/components/parameters/NodeId'
+        - $ref: '#/components/parameters/XOwner'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ManualOverrideRequest' }
+      responses:
+        '200':
+          description: "Manual override deactivated."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ManualOverrideAck' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/ServerError' }
@@ -270,11 +390,13 @@ paths: ###########################################################
             application/json:
               schema:
                 type: object
+                required: [ data ]
                 properties:
                   data:
                     type: array
                     items:
                       $ref: '#/components/schemas/Heartbeat'
+        '404': { $ref: '#/components/responses/NotFound' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '500': { $ref: '#/components/responses/ServerError' }
@@ -330,6 +452,23 @@ paths: ###########################################################
       security: [ { bearerIndigo: [ ] } ]
       parameters:
         - $ref: '#/components/parameters/NodeId'
+        - name: limit
+          in: query
+          required: false
+          description: "Maximum number of heartbeat records returned. Defaults to 100."
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+        - name: offset
+          in: query
+          required: false
+          description: "Number of heartbeat records skipped before collecting the response page."
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
       responses:
         '200':
           description: "Heartbeat history successfully returned."
@@ -340,7 +479,7 @@ paths: ###########################################################
                 properties:
                   nodeId:
                     type: string
-                    example: "node-001"
+                    example: "node_ab12cd34ef"
                   data:
                     type: array
                     items:
@@ -582,10 +721,9 @@ paths: ###########################################################
       tags: [ Data ]
       summary: Subscribe to Real-Time Data (SSE)
       description: >
-        Opens a Server-Sent Events (SSE) stream to receive real-time data updates 
-        for the specified node.  
-        Internally, the Gateway subscribes to the relevant MQTT topic 
-        and forwards messages to the client as SSE events.
+        Opens a Server-Sent Events (SSE) stream to receive real-time data updates
+        for the specified node. The service polls persisted node data and emits
+        `node-data` events plus periodic keepalive comments.
       security:
         - bearerIndigo: [ ]
       parameters:
@@ -597,6 +735,21 @@ paths: ###########################################################
           schema:
             type: string
             enum: [ scalar, spatial, vector, temporal, multimedia ]
+        - name: since
+          in: query
+          required: false
+          description: Emit only records received after this timestamp.
+          schema:
+            type: string
+            format: date-time
+        - name: pollMs
+          in: query
+          required: false
+          description: Polling interval in milliseconds. Runtime minimum is 250.
+          schema:
+            type: integer
+            default: 1000
+            minimum: 250
       responses:
         '200':
           description: "SSE stream opened."
@@ -605,9 +758,9 @@ paths: ###########################################################
               schema:
                 type: string
                 example: |
-                  event: data
-                  id: msg-001
-                  data: {"value":22.5,"unit":"°C","timestamp":"2025-09-17T10:10:00Z"}
+                  event: node-data
+                  id: doc-1
+                  data: {"type":"scalar","timestamp":"2026-03-26T10:00:01Z","payload":{"value":42.5,"sensorId":"sensor-1","timestamp":"2026-03-26T10:00:01Z"}}
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -628,35 +781,25 @@ paths: ###########################################################
       servers:
         - url: /      # Media Service base path interno (es. http://media-service)
       security: [ ]     # protetto a livello di rete/mTLS, niente bearer pubblico
+      parameters:
+        - name: nodeId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "ID of the originating node."
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
               type: object
+              required: [ file ]
               properties:
                 file:
                   type: string
                   format: binary
                   description: "Media file (photo/video/document)."
-                nodeId:
-                  type: string
-                  description: "ID of the originating node."
-                createdAt:
-                  type: string
-                  format: date-time
-                  description: "Optional: timestamp associated to the media; defaults to now."
-                labels:
-                  type: array
-                  items:
-                    type: string
-                  description: "Optional labels/tags for the media."
-                mimeType:
-                  type: string
-                  description: "Optional override for MIME type; if omitted, inferred."
-              required:
-                - file
-                - nodeId
       responses:
         '201':
           description: "Media created."
@@ -736,6 +879,30 @@ paths: ###########################################################
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
   /internal/media/{mediaId}:
+    get:
+      tags: [ Media ]
+      summary: Internal - Download single media object
+      description: |
+        Internal endpoint used by other services to download a stored media object.
+      servers:
+        - url: /
+      security: [ ]
+      parameters:
+        - $ref: '#/components/parameters/MediaId'
+      responses:
+        '200':
+          description: Raw binary content.
+          headers:
+            Content-Length: { schema: { type: string } }
+            Content-Type: { schema: { type: string } }
+            Content-Disposition: { schema: { type: string } }
+          content:
+            application/octet-stream: { }
+        '404':
+          description: "Media not found."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
     delete:
       tags: [ Media ]
       summary: Internal - Delete single media object
@@ -774,16 +941,13 @@ paths: ###########################################################
               schema: { $ref: '#/components/schemas/ErrorResponse' }
               
   /media/{mediaId}/download:
-    servers:
-      - url: /api/v1
     get:
       tags: [ Media ]
       operationId: mediaDownloadBinary
       security: [ { bearerIndigo: [ ] } ]
       summary: Download a media file (photo/video)
       description: >
-        Serves the full binary file. Supports HTTP Range requests for resumable downloads.
-        Use Content-Disposition for filename if desired.
+        Serves the full binary file with attachment disposition.
       parameters:
         - $ref: '#/components/parameters/MediaId'
       responses:
@@ -792,16 +956,7 @@ paths: ###########################################################
           headers:
             Content-Length: { schema: { type: string } }
             Content-Type: { schema: { type: string } }
-            ETag: { schema: { type: string } }
-          content:
-            application/octet-stream: { }
-        '206':
-          description: Partial content (Range).
-          headers:
-            Content-Range: { schema: { type: string } }
-            Content-Length: { schema: { type: string } }
-            Content-Type: { schema: { type: string } }
-            ETag: { schema: { type: string } }
+            Content-Disposition: { schema: { type: string } }
           content:
             application/octet-stream: { }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -853,13 +1008,11 @@ paths: ###########################################################
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaList'
+                $ref: '#/components/schemas/MediaMetadataListResponse'
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
   /media/{mediaId}:
-    servers:
-      - url: /api/v1
     head:
       tags: [ Media ]
       operationId: mediaHead
@@ -877,14 +1030,14 @@ paths: ###########################################################
       tags: [ Media ]
       operationId: mediaDownload
       security: [ { bearerIndigo: [ ] } ]
-      summary: Presigned URL a media file (photo/video)
+      summary: Get media metadata and links
       description: >
-        Serves a presigned URL to the full binary file.
+        Returns media metadata together with relative download and thumbnail links.
       parameters:
         - $ref: '#/components/parameters/MediaId'
       responses:
         '200':
-          description: presigned URL.
+          description: Media metadata and relative links.
           content:
             application/json:
               schema:
@@ -894,8 +1047,6 @@ paths: ###########################################################
         '404': { $ref: '#/components/responses/NotFound' }
 
   /media/{mediaId}/thumbnail:
-    servers:
-      - url: /api/v1
     get:
       tags: [ Media ]
       operationId: mediaThumbnail
@@ -959,7 +1110,7 @@ paths: ###########################################################
       summary: Get export job status and download URL
       description: >
         Returns the status of a previously created export job and, if completed,
-        a short-lived pre-signed URL to download the archive.
+        a relative download URL to retrieve the archive.
       parameters:
         - $ref: '#/components/parameters/ExportId'
       responses:
@@ -975,7 +1126,7 @@ paths: ###########################################################
                   value:
                     exportId: "ex_01JFQA6V7F3S9DNQ4C5"
                     status: "done"
-                    downloadUrl: "https://signed.example.com/export/ex_01JFQA6V7F3S9DNQ4C5.zip"
+                    downloadUrl: "/api/v1/iot/media/exports/ex_01JFQA6V7F3S9DNQ4C5/download"
                 running:
                   summary: In progress
                   value:
@@ -985,6 +1136,30 @@ paths: ###########################################################
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/ServerError' }
+
+  /media/exports/{exportId}/download:
+    get:
+      tags: [ Media ]
+      operationId: mediaExportDownload
+      security: [ { bearerIndigo: [ ] } ]
+      summary: Download export archive
+      description: >
+        Downloads the archive generated for a completed export job.
+      parameters:
+        - $ref: '#/components/parameters/ExportId'
+      responses:
+        '200':
+          description: Export archive.
+          headers:
+            Content-Length: { schema: { type: string } }
+            Content-Type: { schema: { type: string } }
+            Content-Disposition: { schema: { type: string } }
+          content:
+            application/zip: { }
+            application/x-tar: { }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
 
   ###########################################################
@@ -1100,10 +1275,11 @@ paths: ###########################################################
     post:
       tags: [ Actuator Commands ]
       summary: Send Manual Command to Actuator
-      description: "Sends an immediate manual command to an actuator (e.g., 'on', 'off', 'setValue')."
+      description: "Sends an immediate manual command to an actuator (e.g., 'setState' or 'setValue')."
       security: [ { bearerIndigo: [ ] } ]
       parameters:
         - $ref: '#/components/parameters/NodeId'
+        - $ref: '#/components/parameters/XOwner'
       requestBody:
         required: true
         content:
@@ -1176,7 +1352,7 @@ paths: ###########################################################
                 example: |
                   event: node-command
                   id: 67e0...
-                  data: {"nodeId":"node-001","commandType":"on","issuedBy":"owner-a","timestamp":"2026-03-23T10:00:00Z"}
+                  data: {"nodeId":"node_ab12cd34ef","commandType":"setState","state":"on","issuedBy":"owner-a","timestamp":"2026-03-23T10:00:00Z"}
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -1186,8 +1362,6 @@ paths: ###########################################################
   # Enrollment & Device Credentials
   ###########################################################
   /credentials/enroll/code:
-    servers:
-      - url: /api/v1
     post:
       tags: [ Enrollment & Device Credentials ]
       summary: Create one-time enrollment code for a node or a list of nodes
@@ -1278,12 +1452,13 @@ paths: ###########################################################
                     correlationId: "9999aaaabbbbcccc"
 
   /credentials/enroll:
-    servers:
-      - url: /api/v1
     post:
       tags: [ Enrollment & Device Credentials ]
-      summary: Device certificate enrollment (code + CSR)
-      description: Public endpoint protected by one-time enrollmentCode.
+      summary: Device bootstrap credentials enrollment
+      description: >
+        Public bootstrap endpoint protected by a one-time enrollmentCode.
+        The service consumes the enrollment, resolves the bound nodeId server-side,
+        generates a short-lived private key and client certificate, and returns them to the device.
       security: [ ]
       requestBody:
         required: true
@@ -1300,25 +1475,33 @@ paths: ###########################################################
                 $ref: '#/components/schemas/CredentialsCertificateResponse'
   
         '400':
-          description: Invalid request (e.g., malformed CSR, missing fields).
+          description: Invalid request (e.g., missing enrollmentCode or enrollment not found).
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
               examples:
-                invalidCsr:
-                  summary: CSR is not valid PEM/PKCS#10
+                invalidPayload:
+                  summary: enrollmentCode is required
                   value:
-                    type: "urn:artemis:error:credentials:invalid-csr"
-                    title: "Invalid CSR"
+                    type: "urn:artemis:error:validation"
+                    title: "Validation error"
                     status: 400
-                    detail: "csrPem is not a valid PKCS#10 CSR in PEM format."
-                    errorCode: "CREDENTIALS_INVALID_CSR"
+                    detail: "enrollmentCode must not be blank"
+                    errorCode: "VALIDATION_ERROR"
                     correlationId: "c2f6b1b0c1a44b4c"
-                    nodeId: "node-001"
+                enrollmentNotFound:
+                  summary: Enrollment code not found
+                  value:
+                    type: "urn:artemis:error:400"
+                    title: "Bad Request"
+                    status: 400
+                    detail: "Enrollment not found for code"
+                    errorCode: "HTTP_400"
+                    correlationId: "f0e1d2c3b4a59687"
   
         '403':
-          description: Enrollment code is invalid for this node, expired, or already used.
+          description: Enrollment code is expired or already used.
           content:
             application/problem+json:
               schema:
@@ -1333,19 +1516,6 @@ paths: ###########################################################
                     detail: "The enrollmentCode has expired."
                     errorCode: "CREDENTIALS_ENROLLMENT_EXPIRED"
                     correlationId: "8f3b9a2d4c1a4d11"
-                    nodeId: "node-001"
-                    enrollmentId: "enr_2f5c8c0b"
-                codeWrongNode:
-                  summary: Code not valid for this node
-                  value:
-                    type: "urn:artemis:error:credentials:enrollment-node-mismatch"
-                    title: "Enrollment not allowed for node"
-                    status: 403
-                    detail: "The enrollmentCode is not valid for the specified nodeId."
-                    errorCode: "CREDENTIALS_ENROLLMENT_NODE_MISMATCH"
-                    correlationId: "1b2c3d4e5f6a7788"
-                    nodeId: "node-002"
-                    enrollmentId: "enr_2f5c8c0b"
                 codeUsed:
                   summary: Code already used
                   value:
@@ -1355,7 +1525,7 @@ paths: ###########################################################
                     detail: "The enrollmentCode has already been used."
                     errorCode: "CREDENTIALS_ENROLLMENT_USED"
                     correlationId: "a0b1c2d3e4f50607"
-                    nodeId: "node-001"
+                    nodeId: "node_ab12cd34ef"
                     enrollmentId: "enr_2f5c8c0b"
   
         '409':
@@ -1374,16 +1544,16 @@ paths: ###########################################################
                     detail: "A valid certificate already exists for this nodeId."
                     errorCode: "CREDENTIALS_CERT_ALREADY_EXISTS"
                     correlationId: "f1e2d3c4b5a69788"
-                    nodeId: "node-001"
+                    nodeId: "node_ab12cd34ef"
 
   /credentials/renew:
-    servers: [ { url: /api/v1 } ]
     post:
       tags: [ Enrollment & Device Credentials ]
       summary: Renew device certificate
       description: |
-        Transitional profile: renewal is currently exposed without strict mTLS enforcement.
-        Internal mTLS hardening may be enabled in a future version.
+        Simplified renewal profile.
+        The device presents its previous certificate and the service derives the node identity server-side,
+        generates a fresh private key and a renewed short-lived client certificate, and returns them to the device.
       security: [ ]
       requestBody:
         required: true
@@ -1400,20 +1570,20 @@ paths: ###########################################################
                 $ref: '#/components/schemas/CredentialsCertificateResponse'
   
         '400':
-          description: Invalid request (e.g., malformed CSR).
+          description: Invalid request (e.g., malformed or unreadable previous certificate).
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
               examples:
-                invalidCsr:
-                  summary: CSR is not valid PEM/PKCS#10
+                invalidCertificate:
+                  summary: previousCertificatePem is invalid
                   value:
-                    type: "urn:artemis:error:credentials:invalid-csr"
-                    title: "Invalid CSR"
+                    type: "urn:artemis:error:validation"
+                    title: "Bad Request"
                     status: 400
-                    detail: "csrPem is not a valid PKCS#10 CSR in PEM format."
-                    errorCode: "CREDENTIALS_INVALID_CSR"
+                    detail: "Invalid previousCertificatePem"
+                    errorCode: "HTTP_400"
                     correlationId: "d3f0a1b2c3d4e5f6"
   
         '401':
@@ -1530,6 +1700,31 @@ paths: ###########################################################
                       v1: { href: "/api/v1/iot" }
                       nodes: { href: "/api/v1/iot/nodes" }
                       credentials: { href: "/api/v1/iot/credentials/enroll/code" }
+  /control/evaluate:
+    post:
+      tags: [ Control ]
+      summary: Evaluate rules and dispatch commands
+      description: >
+        Evaluates the current facts for a node against control logic and dispatches
+        matching commands.
+      security: [ { bearerIndigo: [ ] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ControlEvaluateRequest'
+      responses:
+        '200':
+          description: Evaluation result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlEvaluateResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/ServerError' }
 components: ###########################################################
   # Security Schemes
   ###########################################################
@@ -1595,6 +1790,12 @@ components: ###########################################################
       description: >
         Optional idempotency key for POST submissions to avoid duplicated records on retries.
       schema: { type: string }
+    XOwner:
+      name: X-Owner
+      in: header
+      required: false
+      description: Node owner identity used by protected write operations.
+      schema: { type: string }
     StatusNodeValue:
       name: status
       in: query
@@ -1605,22 +1806,22 @@ components: ###########################################################
       in: query
       required: false
       schema:
-        type: string
-        example: "0-20"
+        type: integer
+        example: 20
     SignalStrengthValue:
       name: signalStrength
       in: query
       required: false
       schema:
-        type: string
-        example: "60-80"
+        type: integer
+        example: 80
     TemperatureValue:
       name: temperature
       in: query
       required: false
       schema:
-        type: string
-        example: "20-30"
+        type: number
+        example: 23.5
 
 
   ###########################################################
@@ -1642,23 +1843,11 @@ components: ###########################################################
         sensors:
           type: array
           items:
-            type: object
-            properties:
-              sensorId:
-                type: string
-                description: Stable identifier of the sensor within the node. Required to distinguish multiple sensors sharing the same nodeId and dataType.
-              name: { type: string }
-              type: { type: string }
-              dataType: { type: string, enum: [ scalar, vector, spatial, multimedia, temporal ] }
-              unit: { type: string }
-              range:
-                type: array
-                minItems: 2
-                maxItems: 2
-                items: { type: number }
+            $ref: '#/components/schemas/NodeSensorCapability'
         actuators:
           type: array
-          items: { type: object }
+          items:
+            $ref: '#/components/schemas/NodeActuatorCapability'
         supportedDataTypes:
           type: array
           items:
@@ -1666,6 +1855,8 @@ components: ###########################################################
             enum: [ scalar, vector, spatial, multimedia, temporal ]
         mqttTopics:
           type: object
+          description: Server-assigned MQTT topics materialized on the node after registration.
+          readOnly: true
           properties:
             publish:
               type: array
@@ -1673,6 +1864,33 @@ components: ###########################################################
             subscribe:
               type: array
               items: { type: string }
+
+    NodeSensorCapability:
+      type: object
+      properties:
+        sensorId:
+          type: string
+          description: Stable identifier of the sensor within the node.
+        name: { type: string }
+        type: { type: string }
+        dataType: { type: string, enum: [ scalar, vector, spatial, multimedia, temporal ] }
+        unit: { type: string }
+        range:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items: { type: number }
+
+    NodeActuatorCapability:
+      type: object
+      properties:
+        name: { type: string }
+        type: { type: string }
+        supportedCommands:
+          type: array
+          description: "Abstract commands supported by the actuator."
+          items:
+            $ref: '#/components/schemas/CommandType'
 
     NodeOperationalFlags:
       type: object
@@ -1683,13 +1901,21 @@ components: ###########################################################
         maintenanceRequired:
           type: boolean
           default: false
+        manualOverrideActive:
+          type: boolean
+          default: false
+        manualOverrideBy:
+          type: string
+        manualOverrideAt:
+          $ref: '#/components/schemas/Timestamp'
 
     NodeDetails:
       type: object
       required: [ nodeId, name, type, capabilities, status, enabled, simulatedNode ]
       properties:
-        nodeId: { type: string, description: "Unique ID of the node." }
+        nodeId: { type: string, description: "Unique ID of the node.", example: "node_ab12cd34ef" }
         name: { type: string, description: "Descriptive name of the node." }
+        owner: { type: string, description: "Owner of the node." }
         type: { type: string, enum: [ sensor, actuator, hybrid ], description: "Type of node." }
         location:
           type: object
@@ -1729,6 +1955,7 @@ components: ###########################################################
       required: [ name, type, capabilities, status, enabled, simulatedNode ]
       properties:
         name: { type: string, description: "Descriptive name of the node." }
+        owner: { type: string, description: "Owner of the node. If omitted, the service assigns a default owner." }
         type: { type: string, enum: [ sensor, actuator, hybrid ], description: "Type of node." }
         location:
           type: object
@@ -1763,6 +1990,59 @@ components: ###########################################################
         operationalFlags: { $ref: '#/components/schemas/NodeOperationalFlags' }
         additionalProp: { type: object }
 
+    NodeUpdateCommand:
+      type: object
+      properties:
+        name: { type: string, description: "New descriptive name of the node." }
+        type: { type: string, enum: [ sensor, actuator, hybrid ], description: "Updated type of node." }
+        location:
+          type: object
+          description: "Updated location data of the node."
+          required: [ indoor, installationPoint ]
+          properties:
+            latitude: { type: number }
+            longitude: { type: number }
+            altitude: { type: number }
+            position:
+              type: object
+              properties:
+                floor: { type: integer }
+                room: { type: string }
+                x: { type: integer }
+                y: { type: integer }
+                z: { type: integer }
+            indoor: { type: boolean }
+            installationPoint: { type: string }
+        enabled: { type: boolean }
+        simulatedNode: { type: boolean }
+        operationalFlags: { $ref: '#/components/schemas/NodeOperationalFlags' }
+        additionalProp: { type: object }
+
+    UpdateNodeInformationRequest:
+      type: object
+      required: [ node ]
+      properties:
+        description:
+          type: string
+          description: "The reason why the node is being updated."
+          example: "Room change"
+        node:
+          $ref: '#/components/schemas/NodeUpdateCommand'
+
+    ManualOverrideRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: "Reason attached to the manual override audit event."
+          example: "manual command"
+
+    ManualOverrideAck:
+      type: object
+      properties:
+        nodeId: { type: string }
+        message: { type: string, example: "manual-override-activated" }
+      required: [ nodeId, message ]
 
     NodeResponse:
       type: object
@@ -1771,20 +2051,26 @@ components: ###########################################################
         message: { type: string }
 
 
-    NodeRegistered:
+    NodeRegisteredResponse:
       type: object
+      required: [ nodeId, message, assignedTopics ]
       properties:
-        nodeId: { type: string }
-        message: { type: string }
+        nodeId: { type: string, description: "Unique ID of the node.", example: "node_ab12cd34ef" }
+        message: { type: string, example: "created" }
         assignedTopics:
-          type: object
-          properties:
-            publish:
-              type: array
-              items: { type: string }
-            subscribe:
-              type: array
-              items: { type: string }
+          $ref: '#/components/schemas/AssignedTopics'
+
+    AssignedTopics:
+      type: object
+      required: [ publish, subscribe ]
+      description: MQTT topics automatically assigned by node-service at registration time.
+      properties:
+        publish:
+          type: array
+          items: { type: string }
+        subscribe:
+          type: array
+          items: { type: string }
 
     NodeHistory:
       type: object
@@ -1949,7 +2235,7 @@ components: ###########################################################
       example:
         data:
           - id: "rec_01JFQ8E6E9ZP5X6N9K2Q8C"
-            nodeId: "node-001"
+            nodeId: "node_ab12cd34ef"
             type: "scalar"
             receivedAt: "2026-03-26T10:15:31Z"
             payload:
@@ -1957,7 +2243,7 @@ components: ###########################################################
               sensorId: "temp-1"
               timestamp: "2026-03-26T10:15:30Z"
           - id: "rec_01JFQ8E6E9ZP5X6N9K2Q8D"
-            nodeId: "node-001"
+            nodeId: "node_ab12cd34ef"
             type: "scalar"
             receivedAt: "2026-03-26T10:16:31Z"
             payload:
@@ -1968,8 +2254,8 @@ components: ###########################################################
     DataMediaLinks:
       type: object
       properties:
-        downloadUrl: { type: string, example: "/media/m_01JFQ9Y2T5K9X3" }
-        thumbnailUrl: { type: string, nullable: true, example: "/media/thumb_01JFQ9Y2T5K9X3" }
+        downloadUrl: { type: string, example: "/api/v1/iot/media/m_01JFQ9Y2T5K9X3/download" }
+        thumbnailUrl: { type: string, nullable: true, example: "/api/v1/iot/media/m_01JFQ9Y2T5K9X3/thumbnail" }
 
     DataMediaObject:
       type: object
@@ -2022,8 +2308,8 @@ components: ###########################################################
             height: 213
             labels: []
             links:
-              downloadUrl: "/media/m_01JFQ9Y2T5K9X3"
-              thumbnailUrl: "/media/thumb_01JFQ9Y2T5K9X3"
+              downloadUrl: "/api/v1/iot/media/m_01JFQ9Y2T5K9X3/download"
+              thumbnailUrl: "/api/v1/iot/media/m_01JFQ9Y2T5K9X3/thumbnail"
             thumbnail: "thumb_01JFQ9Y2T5K9X3"
         pageInfo:
           hasNextPage: true
@@ -2044,15 +2330,34 @@ components: ###########################################################
           type: object
           properties:
             downloadUrl: { type: string }
-            thumbnailUrl: { type: string }
-      required: [ id, nodeId, fileName, mimeType, size, createdAt ]
+            thumbnailUrl: { type: string, nullable: true }
+      required: [ id, nodeId, fileName, mimeType, size, createdAt, links ]
 
-    MediaList:
+    MediaMetadataItem:
+      type: object
+      properties:
+        mediaId: { type: string }
+        nodeId: { type: string }
+        filename: { type: string }
+        contentType: { type: string }
+        size: { type: integer, format: int64 }
+        bucket: { type: string }
+        etag: { type: string }
+        thumbnailMediaId: { type: string, nullable: true }
+        thumbnailContentType: { type: string, nullable: true }
+        thumbnailSize: { type: integer, format: int64, nullable: true }
+        thumbnailWidth: { type: integer, nullable: true }
+        thumbnailHeight: { type: integer, nullable: true }
+        createdAt: { $ref: '#/components/schemas/Timestamp' }
+        updatedAt: { $ref: '#/components/schemas/Timestamp' }
+      required: [ mediaId, nodeId, filename, contentType, size, bucket, etag, createdAt, updatedAt ]
+
+    MediaMetadataListResponse:
       type: object
       properties:
         data:
           type: array
-          items: { $ref: '#/components/schemas/MediaObject' }
+          items: { $ref: '#/components/schemas/MediaMetadataItem' }
         page:
           type: integer
         size:
@@ -2060,28 +2365,20 @@ components: ###########################################################
       required: [ data, page, size ]
       example:
         data:
-          - id: "m_01JFQ9Y2T5K9X3"
+          - mediaId: "m_01JFQ9Y2T5K9X3"
             nodeId: "abc123"
-            fileName: "photo_2025-09-10_10-00-00.jpg"
-            mimeType: "image/jpeg"
+            filename: "photo_2025-09-10_10-00-00.jpg"
+            contentType: "image/jpeg"
             size: 2459136
+            bucket: "artemis-media"
+            etag: "etag-1"
+            thumbnailMediaId: "thumb_01JFQ9Y2T5K9X3"
+            thumbnailContentType: "image/jpeg"
+            thumbnailSize: 48123
             createdAt: "2025-09-10T10:00:00Z"
-            width: 4032
-            height: 3024
-            links:
-              downloadUrl: "https://signed.example.com/dl/m_01JFQ9Y2T5K9X3"
-              thumbnailUrl: "/media/m_01JFQ9Y2T5K9X3/thumbnail"
-          - id: "m_01JFQ9Z7R1PMBW"
-            nodeId: "abc123"
-            fileName: "video_2025-09-10_10-05-00.mp4"
-            mimeType: "video/mp4"
-            size: 15039136
-            createdAt: "2025-09-10T10:05:00Z"
-            width: 1920
-            height: 1080
-            links:
-              downloadUrl: "https://signed.example.com/dl/m_01JFQ9Z7R1PMBW"
-              thumbnailUrl: "/media/m_01JFQ9Z7R1PMBW/thumbnail"
+            updatedAt: "2025-09-10T10:00:05Z"
+            thumbnailWidth: 320
+            thumbnailHeight: 213
         page: 0
         size: 50
 
@@ -2108,7 +2405,7 @@ components: ###########################################################
     MediaExportRequest:
       type: object
       properties:
-        nodeId: { type: string, example: "node-001" }
+        nodeId: { type: string, example: "node_ab12cd34ef" }
         startTime: { $ref: '#/components/schemas/Timestamp' }
         endTime: { $ref: '#/components/schemas/Timestamp' }
         mime: { type: string, example: "image/*" }
@@ -2128,7 +2425,7 @@ components: ###########################################################
           enum: [ pending, running, done, error ]
         downloadUrl:
           type: string
-          description: "Pre-signed URL. Present only when status=done."
+          description: "Relative download URL. Present only when status=done."
         error:
           type: string
           description: "Error message when status=error."
@@ -2136,28 +2433,65 @@ components: ###########################################################
       example:
         exportId: "ex_01JFQA6V7F3S9DNQ4C5"
         status: "done"
-        downloadUrl: "https://signed.example.com/export/ex_01JFQA6V7F3S9DNQ4C5.zip"
+        downloadUrl: "/api/v1/iot/media/exports/ex_01JFQA6V7F3S9DNQ4C5/download"
     
-    CommandsActions:
-      type: array
-      description: "Actions to perform when the rule's condition is true."
-      items:
-        type: object
-        properties:
-          actuatorId: { type: string, description: "The ID of the actuator to control." }
-          command:
-            $ref: '#/components/schemas/CommandType'
-          value: { type: number, description: "The value to be set between 0 and 100 (only if command is setValue).", example: 50.0 }
-      example:
-        - actuatorId: "actuator-thermostat-001"
-          command: "on"
-        - actuatorId: "actuator-light-002"
-          command: "setValue"
-          value: 60.0
+    DecisionAction:
+      type: object
+      properties:
+        actuatorId: { type: string }
+        commandType:
+          $ref: '#/components/schemas/CommandType'
+        state:
+          allOf:
+            - $ref: '#/components/schemas/ActuatorState'
+          nullable: true
+          description: Only used if commandType is setState
+        value:
+          type: number
+          nullable: true
+          description: Only used if commandType is setValue
+        payload:
+          type: object
+          additionalProperties: true
+          nullable: true
+      oneOf:
+        - required: [ actuatorId, commandType, state ]
+          properties:
+            commandType:
+              type: string
+              enum: [ setState ]
+        - required: [ actuatorId, commandType, value ]
+          properties:
+            commandType:
+              type: string
+              enum: [ setValue ]
+
+    DecisionSensorRef:
+      type: object
+      properties:
+        alias: { type: string }
+        nodeId: { type: string }
+        sensorId: { type: string }
+
+    DecisionActuatorRef:
+      type: object
+      properties:
+        nodeId: { type: string }
+        actuatorName: { type: string }
+
+    DecisionRuleSchedule:
+      type: object
+      properties:
+        cron: { type: string, nullable: true }
+        intervalSeconds: { type: integer, format: int64, nullable: true }
 
     DecisionRuleEvaluationMethod:
       type: string
       enum: [ expression, externalService, undefined ]
+
+    DecisionRuleTriggerType:
+      type: string
+      enum: [ manual, temporal, event ]
     
     DecisionRule:
       type: object
@@ -2166,6 +2500,12 @@ components: ###########################################################
           type: string
           example: "rule-0001"
         description: { type: string, description: "Brief description of the rule." }
+        triggerType:
+          $ref: '#/components/schemas/DecisionRuleTriggerType'
+        schedule:
+          $ref: '#/components/schemas/DecisionRuleSchedule'
+        eventSource:
+          type: string
         evaluationMethod:
           $ref: '#/components/schemas/DecisionRuleEvaluationMethod'
         expression:
@@ -2175,39 +2515,74 @@ components: ###########################################################
         externalServiceUrl: { type: string, description: "External service URL that triggers the rule." }
         variables:
           type: object
+          additionalProperties:
+            type: string
           description: "Map of variable alias to actual sensor IDs."
           example:
             H1: "sensor-humidity-001"
             H2: "sensor-humidity-002"
             T1: "sensor-temperature-001"
+        sensors:
+          type: array
+          items:
+            $ref: '#/components/schemas/DecisionSensorRef'
+        actuators:
+          type: array
+          items:
+            $ref: '#/components/schemas/DecisionActuatorRef'
         actions:
-          $ref: '#/components/schemas/CommandsActions'
+          type: array
+          items:
+            $ref: '#/components/schemas/DecisionAction'
 
     DecisionRuleRequest:
       type: object
       properties:
         description: { type: string, description: "Brief description of the rule." }
+        triggerType:
+          $ref: '#/components/schemas/DecisionRuleTriggerType'
+        schedule:
+          $ref: '#/components/schemas/DecisionRuleSchedule'
+        eventSource:
+          type: string
         evaluationMethod:
           $ref: '#/components/schemas/DecisionRuleEvaluationMethod'
         expression:
-          type: object
+          type: string
           description: "Logical condition that triggers the rule."
           example: "(H1 + H2)/2 > 60 && T1 < 22"
         externalServiceUrl: { type: string, description: "External service URL that triggers the rule." }
         variables:
           type: object
+          additionalProperties:
+            type: string
           description: "Map of variable alias to actual sensor IDs."
           example:
             H1: "sensor-humidity-001"
             H2: "sensor-humidity-002"
             T1: "sensor-temperature-001"
+        sensors:
+          type: array
+          items:
+            $ref: '#/components/schemas/DecisionSensorRef'
+        actuators:
+          type: array
+          items:
+            $ref: '#/components/schemas/DecisionActuatorRef'
         actions:
-          $ref: '#/components/schemas/CommandsActions'
+          type: array
+          items:
+            $ref: '#/components/schemas/DecisionAction'
     
     CommandType:
       type: string
-      description: "The command to be executed."
-      enum: [ on, off, setValue ]
+      description: "The abstract command to be executed."
+      enum: [ setState, setValue ]
+
+    ActuatorState:
+      type: string
+      description: "The target binary state for a setState command."
+      enum: [ on, off ]
 
     Commands:
       type: object
@@ -2217,6 +2592,11 @@ components: ###########################################################
           example: "user-0001"
         commandType:
           $ref: '#/components/schemas/CommandType'
+        state:
+          allOf:
+            - $ref: '#/components/schemas/ActuatorState'
+          description: Only used if commandType is setState
+          example: on
         value:
           type: number
           description: Only used if commandType is setValue
@@ -2224,6 +2604,10 @@ components: ###########################################################
         unit:
           type: string
           example: "%"
+        payload:
+          type: object
+          description: "Optional structured command payload."
+          additionalProperties: true
         reason:
           type: string
           example: "Partial activation due to ventilation regulation"
@@ -2232,25 +2616,76 @@ components: ###########################################################
           example: "Command delivered"
         timestamp:
           $ref: '#/components/schemas/Timestamp'
+      oneOf:
+        - required: [ commandType, state ]
+          properties:
+            commandType:
+              type: string
+              enum: [ setState ]
+        - required: [ commandType, value ]
+          properties:
+            commandType:
+              type: string
+              enum: [ setValue ]
 
     CommandsRequest:
       type: object
       properties:
         commandType:
-          type: string
-          description: "The command to be executed."
-          enum: [ on, off, setValue ]
+          $ref: '#/components/schemas/CommandType'
+        state:
+          allOf:
+            - $ref: '#/components/schemas/ActuatorState'
+          description: Only used if commandType is setState
+          example: on
         value:
           type: number
+          description: Only used if commandType is setValue
           example: 75
         unit:
           type: string
           example: "%"
+        payload:
+          type: object
+          description: "Optional structured command payload."
+          additionalProperties: true
         reason:
           type: string
           example: "Partial activation due to ventilation regulation"
         timestamp:
           $ref: '#/components/schemas/Timestamp'
+      oneOf:
+        - required: [ commandType, state ]
+          properties:
+            commandType:
+              type: string
+              enum: [ setState ]
+        - required: [ commandType, value ]
+          properties:
+            commandType:
+              type: string
+              enum: [ setValue ]
+
+    ControlEvaluateRequest:
+      type: object
+      properties:
+        nodeId: { type: string }
+        facts:
+          type: object
+          additionalProperties: true
+        owner: { type: string }
+
+    ControlEvaluateResponse:
+      type: object
+      properties:
+        nodeId: { type: string }
+        evaluatedRules: { type: integer }
+        matchedRules: { type: integer }
+        dispatchedCommands: { type: integer }
+        matchedRuleIds:
+          type: array
+          items: { type: string }
+      required: [ nodeId, evaluatedRules, matchedRules, dispatchedCommands, matchedRuleIds ]
 
     ErrorResponse:
       allOf:
@@ -2311,19 +2746,14 @@ components: ###########################################################
         ttlSeconds:
           type: integer
           format: int32
-          default: 1800
-          minimum: 60
-          maximum: 10800
-          description: |
-                    Code validity (default 30 min).
-                    Max duration is 3 hours.
+          minimum: 3600
+          maximum: 864000
+          description: Code validity in seconds.
         replaceOld:
           type: boolean
-          default: true
         graceSeconds:
           type: integer
           format: int32
-          default: 0
           minimum: 0
         nodesId:
           type: array
@@ -2332,9 +2762,9 @@ components: ###########################################################
           items:
             type: string
             example:
-              - "node-001"
-              - "node-002"
-              - "node-003"
+              - "node_ab12cd34ef"
+              - "node_7k2m9q4x1p"
+              - "node_m4z8c1q2wr"
 
     CredentialsEnrollmentCreateResponse:
       type: object
@@ -2361,27 +2791,22 @@ components: ###########################################################
         createdAt: "2025-12-17T10:15:00Z"
         expiresAt: "2025-12-17T10:45:00Z"
         enrollments:
-          - nodeId: "node-001"
+          - nodeId: "node_ab12cd34ef"
             enrollmentId: "enr_2f5c8c0b"
             enrollmentCode: "K4R9-3Q1Z-7P8M"
-          - nodeId: "node-002"
+          - nodeId: "node_7k2m9q4x1p"
             enrollmentId: "enr_8a0d1c77"
             enrollmentCode: "A1B2-C3D4-E5F6"
 
     CredentialsEnrollRequest:
       type: object
-      required: [ nodeId, enrollmentCode, csrPem ]
+      required: [ enrollmentCode ]
       properties:
-        nodeId:
-          type: string
         enrollmentCode:
           type: string
-        csrPem:
-          type: string
-          description: PKCS#10 CSR in PEM format
-        deviceInfo:
-          type: object
-          additionalProperties: true
+          description: One-time bootstrap enrollment code issued by `/credentials/enroll/code`
+      example:
+        enrollmentCode: "K4R9-3Q1Z-7P8M"
 
     CredentialsCertificateResponse:
       type: object
@@ -2389,6 +2814,12 @@ components: ###########################################################
       properties:
         nodeId:
           type: string
+        privateKeyPem:
+          type: string
+          nullable: true
+          description: |
+            Device private key in PEM format.
+            Returned during bootstrap enrollment and renewal flows.
         certificatePem:
           type: string
           description: Client certificate in PEM format
@@ -2399,7 +2830,11 @@ components: ###########################################################
           type: string
           format: date-time
       example:
-        nodeId: "node-001"
+        nodeId: "node_ab12cd34ef"
+        privateKeyPem: |
+          -----BEGIN PRIVATE KEY-----
+          MIGH...snip...==
+          -----END PRIVATE KEY-----
         certificatePem: |
           -----BEGIN CERTIFICATE-----
           MIIC...snip...AB
@@ -2415,16 +2850,21 @@ components: ###########################################################
 
     CredentialsRenewRequest:
       type: object
-      required: [ csrPem ]
+      required: [ previousCertificatePem ]
       properties:
-        csrPem:
+        previousCertificatePem:
           type: string
-          description: PKCS#10 CSR in PEM format
+          description: Previously issued client certificate in PEM format
+      example:
+        previousCertificatePem: |
+          -----BEGIN CERTIFICATE-----
+          MIIC...snip...AB
+          -----END CERTIFICATE-----
 
     ProblemDetails:
       type: object
       additionalProperties: true
-      required: [type, title, status]
+      required: [type, title, status, timestamp]
       properties:
         type:
           type: string
@@ -2446,13 +2886,10 @@ components: ###########################################################
         errorCode:
           type: string
           description: Stable application error code
-        correlationId:
+        timestamp:
           type: string
-          description: Useful for tracing logs
-        nodeId:
-          type: string
-        enrollmentId:
-          type: string
+          format: date-time
+          description: Error occurrence timestamp
 
   ###########################################################
   # Responses
