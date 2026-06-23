@@ -47,11 +47,6 @@ tags:
     description: |
       Device provisioning using one-time codes and credential management.
 
-
-  - name: Control
-    description: |
-      Explicit evaluation of control rules and command dispatch.
-  
   - name: Discovery
     description: |
       OpenAPI discovery metadata and useful links.
@@ -1700,31 +1695,6 @@ paths: ###########################################################
                       v1: { href: "/api/v1/iot" }
                       nodes: { href: "/api/v1/iot/nodes" }
                       credentials: { href: "/api/v1/iot/credentials/enroll/code" }
-  /control/evaluate:
-    post:
-      tags: [ Control ]
-      summary: Evaluate rules and dispatch commands
-      description: >
-        Evaluates the current facts for a node against control logic and dispatches
-        matching commands.
-      security: [ { bearerIndigo: [ ] } ]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ControlEvaluateRequest'
-      responses:
-        '200':
-          description: Evaluation result.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ControlEvaluateResponse'
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '500': { $ref: '#/components/responses/ServerError' }
 components: ###########################################################
   # Security Schemes
   ###########################################################
@@ -2665,27 +2635,6 @@ components: ###########################################################
             commandType:
               type: string
               enum: [ setValue ]
-
-    ControlEvaluateRequest:
-      type: object
-      properties:
-        nodeId: { type: string }
-        facts:
-          type: object
-          additionalProperties: true
-        owner: { type: string }
-
-    ControlEvaluateResponse:
-      type: object
-      properties:
-        nodeId: { type: string }
-        evaluatedRules: { type: integer }
-        matchedRules: { type: integer }
-        dispatchedCommands: { type: integer }
-        matchedRuleIds:
-          type: array
-          items: { type: string }
-      required: [ nodeId, evaluatedRules, matchedRules, dispatchedCommands, matchedRuleIds ]
 
     ErrorResponse:
       allOf:
