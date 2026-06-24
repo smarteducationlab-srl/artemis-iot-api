@@ -68,6 +68,46 @@ paths: ###########################################################
         content:
           application/json:
             schema: { $ref: '#/components/schemas/NodeDetailsRequest' }
+            example:
+              name: "HumiditySensorNode"
+              owner: "team-iot"
+              type: "sensor"
+              location:
+                latitude: 40.350
+                longitude: 18.175
+                altitude: 12.0
+                position:
+                  floor: 1
+                  room: "the room name"
+                  x: 1
+                  y: 5
+                  z: 3
+                indoor: true
+                installationPoint: "Crypt ceiling vault"
+              capabilities:
+                sensors:
+                  - sensorId: "hum-001"
+                    name: "hum-001"
+                    type: "humidity"
+                    dataType: "scalar"
+                    unit: "%"
+                    range: [ 0, 100 ]
+                actuators: [ ]
+                supportedDataTypes: [ "scalar" ]
+              rhdtId: "rhdt-001"
+              status: "active"
+              enabled: true
+              simulatedNode: false
+              manufacturer: "IoTTech srl"
+              firmwareVersion: "1.2.3"
+              installationTimestamp: "2025-09-10T10:15:12Z"
+              operationalFlags:
+                isCalibrated: true
+                maintenanceRequired: false
+                manualOverrideActive: false
+                manualOverrideBy: ""
+                manualOverrideAt: null
+              metadata: {}
       responses:
         '201':
           description: "Node successfully registered."
@@ -218,12 +258,56 @@ paths: ###########################################################
           description: "Search results returned."
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  nodes:
-                    type: array
-                    items: { $ref: '#/components/schemas/NodeDetails' }
+              schema: { $ref: '#/components/schemas/NodeListResponse' }
+              example:
+                nodes:
+                  - nodeId: "node-001"
+                    name: "HumiditySensorNode"
+                    owner: "team-iot"
+                    type: "sensor"
+                    location:
+                      latitude: 40.350
+                      longitude: 18.175
+                      altitude: 12.0
+                      position:
+                        floor: 1
+                        room: "the room name"
+                        x: 1
+                        y: 5
+                        z: 3
+                      indoor: true
+                      installationPoint: "Crypt ceiling vault"
+                    capabilities:
+                      sensors:
+                        - sensorId: "hum-001"
+                          name: "hum-001"
+                          type: "humidity"
+                          dataType: "scalar"
+                          unit: "%"
+                          range: [ 0, 100 ]
+                      actuators: [ ]
+                      supportedDataTypes: [ "scalar" ]
+                      mqttTopics:
+                        publish:
+                          - "artemis/nodes/node-001/heartbeat"
+                          - "artemis/nodes/node-001/data"
+                        subscribe:
+                          - "artemis/nodes/node-001/commands"
+                    rhdtId: "rhdt-001"
+                    status: "active"
+                    enabled: true
+                    simulatedNode: false
+                    manufacturer: "IoTTech srl"
+                    firmwareVersion: "1.2.3"
+                    installationTimestamp: "2025-09-10T10:15:12Z"
+                    registrationTimestamp: "2025-09-10T10:15:12Z"
+                    operationalFlags:
+                      isCalibrated: true
+                      maintenanceRequired: false
+                      manualOverrideActive: false
+                      manualOverrideBy: ""
+                      manualOverrideAt: null
+                    metadata: {}
         '404': { $ref: '#/components/responses/NotFound' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -243,6 +327,54 @@ paths: ###########################################################
           content:
             application/json:
               schema: { $ref: '#/components/schemas/NodeDetails' }
+              example:
+                nodeId: "node-001"
+                name: "HumiditySensorNode"
+                owner: "team-iot"
+                type: "sensor"
+                location:
+                  latitude: 40.350
+                  longitude: 18.175
+                  altitude: 12.0
+                  position:
+                    floor: 1
+                    room: "the room name"
+                    x: 1
+                    y: 5
+                    z: 3
+                  indoor: true
+                  installationPoint: "Crypt ceiling vault"
+                capabilities:
+                  sensors:
+                    - sensorId: "hum-001"
+                      name: "hum-001"
+                      type: "humidity"
+                      dataType: "scalar"
+                      unit: "%"
+                      range: [ 0, 100 ]
+                  actuators: [ ]
+                  supportedDataTypes: [ "scalar" ]
+                  mqttTopics:
+                    publish:
+                      - "artemis/nodes/node-001/heartbeat"
+                      - "artemis/nodes/node-001/data"
+                    subscribe:
+                      - "artemis/nodes/node-001/commands"
+                rhdtId: "rhdt-001"
+                status: "active"
+                enabled: true
+                simulatedNode: false
+                manufacturer: "IoTTech srl"
+                firmwareVersion: "1.2.3"
+                installationTimestamp: "2025-09-10T10:15:12Z"
+                registrationTimestamp: "2025-09-10T10:15:12Z"
+                operationalFlags:
+                  isCalibrated: true
+                  maintenanceRequired: false
+                  manualOverrideActive: false
+                  manualOverrideBy: ""
+                  manualOverrideAt: null
+                metadata: {}
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -260,12 +392,42 @@ paths: ###########################################################
         content:
           application/json:
             schema: { $ref: '#/components/schemas/UpdateNodeInformationRequest' }
+            example:
+              description: "Room change"
+              node:
+                name: "HumiditySensorNode-WestWing"
+                type: "sensor"
+                location:
+                  latitude: 40.351
+                  longitude: 18.176
+                  altitude: 12.0
+                  position:
+                    floor: 1
+                    room: "west wing"
+                    x: 2
+                    y: 6
+                    z: 3
+                  indoor: true
+                  installationPoint: "West wing ceiling vault"
+                enabled: true
+                simulatedNode: false
+                operationalFlags:
+                  isCalibrated: true
+                  maintenanceRequired: false
+                  manualOverrideActive: false
+                  manualOverrideBy: ""
+                  manualOverrideAt: null
+                metadata:
+                  maintenanceWindow: "2025-Q4"
       responses:
         '200':
           description: "Node successfully updated."
           content:
             application/json:
               schema: { $ref: '#/components/schemas/NodeResponse' }
+              example:
+                nodeId: "node-001"
+                message: "updated"
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -305,12 +467,20 @@ paths: ###########################################################
           description: "Registration history successfully returned."
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  history:
-                    type: array
-                    items: { $ref: '#/components/schemas/NodeHistory' }
+              schema: { $ref: '#/components/schemas/NodeRegistrationHistoryResponse' }
+              example:
+                history:
+                  - timestamp: "2025-09-10T10:15:12Z"
+                    event: "registered"
+                    changedBy: "team-iot"
+                    details:
+                      - "Node created"
+                      - "MQTT topics assigned"
+                  - timestamp: "2025-10-01T08:30:00Z"
+                    event: "updated"
+                    changedBy: "team-iot"
+                    details:
+                      - "Room changed to west wing"
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -330,12 +500,17 @@ paths: ###########################################################
         content:
           application/json:
             schema: { $ref: '#/components/schemas/ManualOverrideRequest' }
+            example:
+              reason: "manual inspection in progress"
       responses:
         '200':
           description: "Manual override activated."
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ManualOverrideAck' }
+              example:
+                nodeId: "node-001"
+                message: "manual-override-activated"
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/ServerError' }
@@ -354,12 +529,17 @@ paths: ###########################################################
         content:
           application/json:
             schema: { $ref: '#/components/schemas/ManualOverrideRequest' }
+            example:
+              reason: "inspection completed"
       responses:
         '200':
           description: "Manual override deactivated."
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ManualOverrideAck' }
+              example:
+                nodeId: "node-001"
+                message: "manual-override-deactivated"
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/ServerError' }
@@ -383,14 +563,15 @@ paths: ###########################################################
           description: "Heartbeat list successfully returned."
           content:
             application/json:
-              schema:
-                type: object
-                required: [ data ]
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Heartbeat'
+              schema: { $ref: '#/components/schemas/HeartbeatListResponse' }
+              example:
+                data:
+                  - nodeId: "node-001"
+                    timestamp: "2025-09-10T10:15:12Z"
+                    status: "active"
+                    batteryLevel: 87
+                    signalStrength: 78
+                    temperature: 23.5
         '404': { $ref: '#/components/responses/NotFound' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -409,6 +590,12 @@ paths: ###########################################################
         content:
           application/json:
             schema: { $ref: '#/components/schemas/HeartbeatSubmitRequest' }
+            example:
+              status: "active"
+              batteryLevel: 87
+              signalStrength: 78
+              temperature: 23.5
+              timestamp: "2025-09-10T10:15:12Z"
       responses:
         '201':
           description: "Heartbeat successfully stored."
@@ -434,6 +621,13 @@ paths: ###########################################################
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Heartbeat' }
+              example:
+                nodeId: "node-001"
+                timestamp: "2025-09-10T10:15:12Z"
+                status: "active"
+                batteryLevel: 87
+                signalStrength: 78
+                temperature: 23.5
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -469,16 +663,20 @@ paths: ###########################################################
           description: "Heartbeat history successfully returned."
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  nodeId:
-                    type: string
-                    example: "node_ab12cd34ef"
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/HeartbeatBasic'
+              schema: { $ref: '#/components/schemas/HeartbeatHistoryResponse' }
+              example:
+                nodeId: "node-001"
+                data:
+                  - timestamp: "2025-09-10T10:15:12Z"
+                    status: "active"
+                    batteryLevel: 87
+                    signalStrength: 78
+                    temperature: 23.5
+                  - timestamp: "2025-09-10T10:20:12Z"
+                    status: "active"
+                    batteryLevel: 86
+                    signalStrength: 79
+                    temperature: 23.3
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -565,6 +763,48 @@ paths: ###########################################################
                   - $ref: '#/components/schemas/LatestData'
                   - $ref: '#/components/schemas/QueryResult'
                   - $ref: '#/components/schemas/DataMediaList'
+              examples:
+                latestScalar:
+                  summary: Latest scalar datapoint
+                  value:
+                    payload:
+                      value: 23.4
+                      sensorId: "temp-1"
+                      timestamp: "2026-03-26T10:15:30Z"
+                      _type: "scalar"
+                      _receivedAt: "2026-03-26T10:15:31Z"
+                queryScalar:
+                  summary: Time-range query result
+                  value:
+                    data:
+                      - id: "rec_01JFQ8E6E9ZP5X6N9K2Q8C"
+                        nodeId: "node-001"
+                        type: "scalar"
+                        receivedAt: "2026-03-26T10:15:31Z"
+                        payload:
+                          value: 22.9
+                          sensorId: "temp-1"
+                          timestamp: "2026-03-26T10:15:30Z"
+                multimediaPage:
+                  summary: Multimedia page
+                  value:
+                    items:
+                      - id: "m_01JFQ9Y2T5K9X3"
+                        nodeId: "node-001"
+                        fileName: "photo_2025-09-10_10-00-00.jpg"
+                        mimeType: "image/jpeg"
+                        size: 2459136
+                        createdAt: "2025-09-10T10:00:00Z"
+                        width: 320
+                        height: 213
+                        labels: [ ]
+                        links:
+                          downloadUrl: "/api/v1/iot/media/m_01JFQ9Y2T5K9X3/download"
+                          thumbnailUrl: "/api/v1/iot/media/m_01JFQ9Y2T5K9X3/thumbnail"
+                        thumbnail: "thumb_01JFQ9Y2T5K9X3"
+                    pageInfo:
+                      hasNextPage: true
+                      nextCursor: "2025-09-10T10:10:00Z"
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -614,9 +854,42 @@ paths: ###########################################################
                 - $ref: '#/components/schemas/SpatialIn'
                 - $ref: '#/components/schemas/VectorIn'
                 - $ref: '#/components/schemas/TemporalIn'
+            examples:
+              scalar:
+                summary: Scalar payload
+                value:
+                  sensorId: "temp-1"
+                  value: 23.4
+                  timestamp: "2025-09-10T10:15:12Z"
+              spatial:
+                summary: Spatial payload
+                value:
+                  sensorId: "pos-1"
+                  x: 1.0
+                  y: 5.0
+                  z: 3.0
+                  timestamp: "2025-09-10T10:15:12Z"
+              vector:
+                summary: Vector payload
+                value:
+                  sensorId: "acc-1"
+                  vector: [ 0.12, 0.03, 0.98 ]
+                  timestamp: "2025-09-10T10:15:12Z"
+              temporal:
+                summary: Temporal payload
+                value:
+                  sensorId: "temp-1"
+                  series:
+                    - timestamp: "2025-09-10T10:10:12Z"
+                      value: 22.8
+                    - timestamp: "2025-09-10T10:15:12Z"
+                      value: 23.4
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/MultimediaIn'
+            example:
+              sensorId: "cam-1"
+              file: "(binary)"
       responses:
         '201':
           description: Data created.
@@ -704,6 +977,11 @@ paths: ###########################################################
                     type: string
                   dryRun:
                     type: boolean
+              example:
+                deletedCount: 42
+                type: "scalar"
+                nodeId: "node-001"
+                dryRun: false
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -802,6 +1080,22 @@ paths: ###########################################################
             application/json:
               schema:
                 $ref: '#/components/schemas/MediaUploadResponse'
+              example:
+                uploaded: true
+                mediaId: "m_01JFQ9Y2T5K9X3"
+                nodeId: "node-001"
+                fileName: "photo_2025-09-10_10-00-00.jpg"
+                mimeType: "image/jpeg"
+                filename: "photo_2025-09-10_10-00-00.jpg"
+                size: 2459136
+                contentType: "image/jpeg"
+                bucket: "artemis-media"
+                etag: "etag-1"
+                thumbnailMediaId: "thumb_01JFQ9Y2T5K9X3"
+                thumbnailContentType: "image/jpeg"
+                thumbnailSize: 48123
+                thumbnailWidth: 320
+                thumbnailHeight: 213
         '400':
           description: "Invalid input or upload error."
           content:
@@ -863,6 +1157,11 @@ paths: ###########################################################
                   endTime:
                     type: string
                     format: date-time
+              example:
+                deletedCount: 12
+                nodeId: "node-001"
+                startTime: "2025-09-10T00:00:00Z"
+                endTime: "2025-09-10T23:59:59Z"
         '400':
           description: "Invalid parameters."
           content:
@@ -924,6 +1223,9 @@ paths: ###########################################################
                   status:
                     type: string
                     example: "deleted"
+              example:
+                mediaId: "m_01JFQ9Y2T5K9X3"
+                status: "deleted"
         '404':
           description: "Media not found."
           content:
@@ -977,15 +1279,17 @@ paths: ###########################################################
           in: query
           required: false
           schema: { type: string }
-        - name: from
+        - name: createdFrom
           in: query
           required: false
+          description: Include media created at or after this timestamp.
           schema:
             type: string
             format: date-time
-        - name: to
+        - name: createdTo
           in: query
           required: false
+          description: Include media created at or before this timestamp.
           schema:
             type: string
             format: date-time
@@ -1004,6 +1308,24 @@ paths: ###########################################################
             application/json:
               schema:
                 $ref: '#/components/schemas/MediaMetadataListResponse'
+              example:
+                data:
+                  - mediaId: "m_01JFQ9Y2T5K9X3"
+                    nodeId: "node-001"
+                    filename: "photo_2025-09-10_10-00-00.jpg"
+                    contentType: "image/jpeg"
+                    size: 2459136
+                    bucket: "artemis-media"
+                    etag: "etag-1"
+                    thumbnailMediaId: "thumb_01JFQ9Y2T5K9X3"
+                    thumbnailContentType: "image/jpeg"
+                    thumbnailSize: 48123
+                    thumbnailWidth: 320
+                    thumbnailHeight: 213
+                    createdAt: "2025-09-10T10:00:00Z"
+                    updatedAt: "2025-09-10T10:00:05Z"
+                page: 0
+                size: 50
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
@@ -1037,6 +1359,18 @@ paths: ###########################################################
             application/json:
               schema:
                 $ref: '#/components/schemas/MediaObject'
+              example:
+                id: "m_01JFQ9Y2T5K9X3"
+                nodeId: "node-001"
+                fileName: "photo_2025-09-10_10-00-00.jpg"
+                mimeType: "image/jpeg"
+                size: 2459136
+                createdAt: "2025-09-10T10:00:00Z"
+                width: 320
+                height: 213
+                links:
+                  downloadUrl: "/api/v1/iot/media/m_01JFQ9Y2T5K9X3/download"
+                  thumbnailUrl: "/api/v1/iot/media/m_01JFQ9Y2T5K9X3/thumbnail"
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -1084,6 +1418,12 @@ paths: ###########################################################
           application/json:
             schema:
               $ref: '#/components/schemas/MediaExportRequest'
+            example:
+              nodeId: "node-001"
+              startTime: "2025-09-10T00:00:00Z"
+              endTime: "2025-09-10T23:59:59Z"
+              mime: "image/*"
+              format: "zip"
       responses:
         '202':
           description: Export job created.
@@ -1091,6 +1431,9 @@ paths: ###########################################################
             application/json:
               schema:
                 $ref: '#/components/schemas/MediaExportStatus'
+              example:
+                exportId: "ex_01JFQA6V7F3S9DNQ4C5"
+                status: "pending"
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -1172,6 +1515,32 @@ paths: ###########################################################
           application/json:
             schema:
               $ref: '#/components/schemas/DecisionRuleRequest'
+            example:
+              description: "Enable ventilation when humidity is too high"
+              triggerType: "event"
+              evaluationMethod: "expression"
+              expression: "(H1 + H2)/2 > 60 && T1 < 22"
+              variables:
+                H1: "sensor-humidity-001"
+                H2: "sensor-humidity-002"
+                T1: "sensor-temperature-001"
+              sensors:
+                - alias: "H1"
+                  nodeId: "node-001"
+                  sensorId: "hum-001"
+                - alias: "H2"
+                  nodeId: "node-002"
+                  sensorId: "hum-001"
+                - alias: "T1"
+                  nodeId: "node-001"
+                  sensorId: "temp-001"
+              actuators:
+                - nodeId: "node-010"
+                  actuatorName: "ventilation-fan"
+              actions:
+                - actuatorId: "ventilation-fan"
+                  commandType: "setState"
+                  state: "on"
       responses:
         '200':
           description: "Rule successfully defined."
@@ -1179,6 +1548,10 @@ paths: ###########################################################
             application/json:
               schema:
                 $ref: '#/components/schemas/DataAck'
+              example:
+                status: "ok"
+                id: "rule_01JFQ8E6E9ZP5X6N9K2Q8C"
+                receivedAt: "2025-09-10T10:15:12Z"
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -1194,13 +1567,29 @@ paths: ###########################################################
           description: "List of rules successfully returned."
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  rules:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/DecisionRule'
+              schema: { $ref: '#/components/schemas/DecisionRuleListResponse' }
+              example:
+                rules:
+                  - ruleId: "rule-0001"
+                    description: "Enable ventilation when humidity is too high"
+                    triggerType: "event"
+                    evaluationMethod: "expression"
+                    expression: "(H1 + H2)/2 > 60 && T1 < 22"
+                    variables:
+                      H1: "sensor-humidity-001"
+                      H2: "sensor-humidity-002"
+                      T1: "sensor-temperature-001"
+                    sensors:
+                      - alias: "H1"
+                        nodeId: "node-001"
+                        sensorId: "hum-001"
+                    actuators:
+                      - nodeId: "node-010"
+                        actuatorName: "ventilation-fan"
+                    actions:
+                      - actuatorId: "ventilation-fan"
+                        commandType: "setState"
+                        state: "on"
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '500': { $ref: '#/components/responses/ServerError' }
@@ -1220,6 +1609,27 @@ paths: ###########################################################
             application/json:
               schema:
                 $ref: '#/components/schemas/DecisionRule'
+              example:
+                ruleId: "rule-0001"
+                description: "Enable ventilation when humidity is too high"
+                triggerType: "event"
+                evaluationMethod: "expression"
+                expression: "(H1 + H2)/2 > 60 && T1 < 22"
+                variables:
+                  H1: "sensor-humidity-001"
+                  H2: "sensor-humidity-002"
+                  T1: "sensor-temperature-001"
+                sensors:
+                  - alias: "H1"
+                    nodeId: "node-001"
+                    sensorId: "hum-001"
+                actuators:
+                  - nodeId: "node-010"
+                    actuatorName: "ventilation-fan"
+                actions:
+                  - actuatorId: "ventilation-fan"
+                    commandType: "setState"
+                    state: "on"
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -1237,6 +1647,27 @@ paths: ###########################################################
           application/json:
             schema:
               $ref: '#/components/schemas/DecisionRule'
+            example:
+              ruleId: "rule-0001"
+              description: "Enable ventilation when humidity is too high"
+              triggerType: "event"
+              evaluationMethod: "expression"
+              expression: "(H1 + H2)/2 > 60 && T1 < 22"
+              variables:
+                H1: "sensor-humidity-001"
+                H2: "sensor-humidity-002"
+                T1: "sensor-temperature-001"
+              sensors:
+                - alias: "H1"
+                  nodeId: "node-001"
+                  sensorId: "hum-001"
+              actuators:
+                - nodeId: "node-010"
+                  actuatorName: "ventilation-fan"
+              actions:
+                - actuatorId: "ventilation-fan"
+                  commandType: "setState"
+                  state: "on"
       responses:
         '200':
           description: "Rule successfully updated."
@@ -1244,6 +1675,10 @@ paths: ###########################################################
             application/json:
               schema:
                 $ref: '#/components/schemas/DataAck'
+              example:
+                status: "ok"
+                id: "rule_01JFQ8E6E9ZP5X6N9K2Q8C"
+                receivedAt: "2025-09-10T10:20:12Z"
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -1281,6 +1716,22 @@ paths: ###########################################################
           application/json:
             schema:
               $ref: '#/components/schemas/CommandsRequest'
+            examples:
+              setState:
+                summary: Binary actuator command
+                value:
+                  commandType: "setState"
+                  state: "on"
+                  reason: "Manual override from control room"
+                  timestamp: "2025-09-10T10:15:12Z"
+              setValue:
+                summary: Numeric actuator command
+                value:
+                  commandType: "setValue"
+                  value: 75
+                  unit: "%"
+                  reason: "Partial activation due to ventilation regulation"
+                  timestamp: "2025-09-10T10:15:12Z"
       responses:
         '200':
           description: "Command successfully sent."
@@ -1288,6 +1739,13 @@ paths: ###########################################################
             application/json:
               schema:
                 $ref: '#/components/schemas/Commands'
+              example:
+                issuedBy: "user-0001"
+                commandType: "setState"
+                state: "on"
+                reason: "Manual override from control room"
+                message: "Command delivered"
+                timestamp: "2025-09-10T10:15:12Z"
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -1310,6 +1768,14 @@ paths: ###########################################################
             application/json:
               schema:
                 $ref: '#/components/schemas/Commands'
+              example:
+                issuedBy: "user-0001"
+                commandType: "setValue"
+                value: 75
+                unit: "%"
+                reason: "Partial activation due to ventilation regulation"
+                message: "Command delivered"
+                timestamp: "2025-09-10T10:15:12Z"
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -1369,6 +1835,13 @@ paths: ###########################################################
           application/json:
             schema:
               $ref: '#/components/schemas/CredentialsEnrollmentCreateRequest'
+            example:
+              ttlSeconds: 1800
+              replaceOld: false
+              graceSeconds: 300
+              nodesId:
+                - "node_ab12cd34ef"
+                - "node_7k2m9q4x1p"
 
       responses:
         '201':
@@ -1468,6 +1941,24 @@ paths: ###########################################################
             application/json:
               schema:
                 $ref: '#/components/schemas/CredentialsCertificateResponse'
+              example:
+                nodeId: "node_ab12cd34ef"
+                privateKeyPem: |
+                  -----BEGIN PRIVATE KEY-----
+                  MIGH...snip...==
+                  -----END PRIVATE KEY-----
+                certificatePem: |
+                  -----BEGIN CERTIFICATE-----
+                  MIIC...snip...AB
+                  -----END CERTIFICATE-----
+                certificateChainPem: |
+                  -----BEGIN CERTIFICATE-----
+                  MIIC...snip...CA
+                  -----END CERTIFICATE-----
+                  -----BEGIN CERTIFICATE-----
+                  MIIC...snip...ROOT
+                  -----END CERTIFICATE-----
+                expiresAt: "2026-12-17T10:15:00Z"
   
         '400':
           description: Invalid request (e.g., missing enrollmentCode or enrollment not found).
@@ -1563,6 +2054,24 @@ paths: ###########################################################
             application/json:
               schema:
                 $ref: '#/components/schemas/CredentialsCertificateResponse'
+              example:
+                nodeId: "node_ab12cd34ef"
+                privateKeyPem: |
+                  -----BEGIN PRIVATE KEY-----
+                  MIGH...snip...==
+                  -----END PRIVATE KEY-----
+                certificatePem: |
+                  -----BEGIN CERTIFICATE-----
+                  MIIC...snip...AB
+                  -----END CERTIFICATE-----
+                certificateChainPem: |
+                  -----BEGIN CERTIFICATE-----
+                  MIIC...snip...CA
+                  -----END CERTIFICATE-----
+                  -----BEGIN CERTIFICATE-----
+                  MIIC...snip...ROOT
+                  -----END CERTIFICATE-----
+                expiresAt: "2027-12-17T10:15:00Z"
   
         '400':
           description: Invalid request (e.g., malformed or unreadable previous certificate).
@@ -1705,8 +2214,7 @@ components: ###########################################################
       bearerFormat: JWT
       description: "OIDC access token issued by INDIGO identity service. Used by applications and users."
     mutualTLS:
-      type: http
-      scheme: bearer
+      type: mutualTLS
       description: >
         Auth: device via mTLS OR user via JWT.
         If mTLS is used, nodeId MUST match the device certificate identity.
@@ -1835,6 +2343,23 @@ components: ###########################################################
               type: array
               items: { type: string }
 
+    NodeCapabilitiesInput:
+      type: object
+      properties:
+        sensors:
+          type: array
+          items:
+            $ref: '#/components/schemas/NodeSensorCapability'
+        actuators:
+          type: array
+          items:
+            $ref: '#/components/schemas/NodeActuatorCapability'
+        supportedDataTypes:
+          type: array
+          items:
+            type: string
+            enum: [ scalar, vector, spatial, multimedia, temporal ]
+
     NodeSensorCapability:
       type: object
       properties:
@@ -1918,11 +2443,12 @@ components: ###########################################################
         installationTimestamp: { $ref: '#/components/schemas/Timestamp' }
         registrationTimestamp: { $ref: '#/components/schemas/Timestamp' }
         operationalFlags: { $ref: '#/components/schemas/NodeOperationalFlags' }
-        additionalProp: { type: object }
+        metadata: { type: object }
 
     NodeDetailsRequest:
       type: object
       required: [ name, type, capabilities, status, enabled, simulatedNode ]
+      additionalProperties: false
       properties:
         name: { type: string, description: "Descriptive name of the node." }
         owner: { type: string, description: "Owner of the node. If omitted, the service assigns a default owner." }
@@ -1945,7 +2471,7 @@ components: ###########################################################
                 z: { type: integer }
             indoor: { type: boolean }
             installationPoint: { type: string }
-        capabilities: { $ref: '#/components/schemas/NodeCapabilities' }
+        capabilities: { $ref: '#/components/schemas/NodeCapabilitiesInput' }
         rhdtId:
           type: string
           example: "rhdt-001"
@@ -1956,12 +2482,12 @@ components: ###########################################################
         manufacturer: { type: string }
         firmwareVersion: { type: string }
         installationTimestamp: { $ref: '#/components/schemas/Timestamp' }
-        registrationTimestamp: { $ref: '#/components/schemas/Timestamp' }
         operationalFlags: { $ref: '#/components/schemas/NodeOperationalFlags' }
-        additionalProp: { type: object }
+        metadata: { type: object }
 
     NodeUpdateCommand:
       type: object
+      additionalProperties: false
       properties:
         name: { type: string, description: "New descriptive name of the node." }
         type: { type: string, enum: [ sensor, actuator, hybrid ], description: "Updated type of node." }
@@ -1986,11 +2512,12 @@ components: ###########################################################
         enabled: { type: boolean }
         simulatedNode: { type: boolean }
         operationalFlags: { $ref: '#/components/schemas/NodeOperationalFlags' }
-        additionalProp: { type: object }
+        metadata: { type: object }
 
     UpdateNodeInformationRequest:
       type: object
       required: [ node ]
+      additionalProperties: false
       properties:
         description:
           type: string
@@ -2001,6 +2528,7 @@ components: ###########################################################
 
     ManualOverrideRequest:
       type: object
+      additionalProperties: false
       properties:
         reason:
           type: string
@@ -2052,11 +2580,24 @@ components: ###########################################################
           type: array
           items: { type: string }
 
+    NodeListResponse:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items: { $ref: '#/components/schemas/NodeDetails' }
+
+    NodeRegistrationHistoryResponse:
+      type: object
+      properties:
+        history:
+          type: array
+          items: { $ref: '#/components/schemas/NodeHistory' }
+
     Heartbeat:
       type: object
       properties:
         nodeId: { type: string }
-        rhdtId: { type: string }
         timestamp: { $ref: '#/components/schemas/Timestamp' }
         status: { $ref: '#/components/schemas/StatusNodeValue' }
         batteryLevel: { type: integer }
@@ -2072,8 +2613,29 @@ components: ###########################################################
         signalStrength: { type: integer }
         temperature: { type: number }
 
+    HeartbeatListResponse:
+      type: object
+      required: [ data ]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Heartbeat'
+
+    HeartbeatHistoryResponse:
+      type: object
+      properties:
+        nodeId:
+          type: string
+          example: "node_ab12cd34ef"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/HeartbeatBasic'
+
     HeartbeatSubmitRequest:
       type: object
+      additionalProperties: false
       properties:
         status: { $ref: '#/components/schemas/StatusNodeValue' }
         batteryLevel: { type: integer }
@@ -2108,6 +2670,7 @@ components: ###########################################################
 
     ScalarIn:
       type: object
+      additionalProperties: false
       properties:
         sensorId: { type: string, description: "Optional sensor discriminator within the node" }
         value: { type: number, description: "Numeric value" }
@@ -2119,6 +2682,7 @@ components: ###########################################################
 
     SpatialIn:
       type: object
+      additionalProperties: false
       properties:
         sensorId: { type: string, description: "Optional sensor discriminator within the node" }
         x: { type: number }
@@ -2132,6 +2696,7 @@ components: ###########################################################
 
     VectorIn:
       type: object
+      additionalProperties: false
       properties:
         sensorId: { type: string, description: "Optional sensor discriminator within the node" }
         vector:
@@ -2145,6 +2710,7 @@ components: ###########################################################
 
     TemporalIn:
       type: object
+      additionalProperties: false
       properties:
         sensorId: { type: string, description: "Optional sensor discriminator within the node" }
         series:
@@ -2159,6 +2725,7 @@ components: ###########################################################
 
     MultimediaIn:
       type: object
+      additionalProperties: false
       properties:
         sensorId:
           type: string
@@ -2507,6 +3074,7 @@ components: ###########################################################
 
     DecisionRuleRequest:
       type: object
+      additionalProperties: false
       properties:
         description: { type: string, description: "Brief description of the rule." }
         triggerType:
@@ -2543,6 +3111,14 @@ components: ###########################################################
           type: array
           items:
             $ref: '#/components/schemas/DecisionAction'
+
+    DecisionRuleListResponse:
+      type: object
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/DecisionRule'
     
     CommandType:
       type: string
@@ -2600,6 +3176,7 @@ components: ###########################################################
 
     CommandsRequest:
       type: object
+      additionalProperties: false
       properties:
         commandType:
           $ref: '#/components/schemas/CommandType'
@@ -2691,6 +3268,7 @@ components: ###########################################################
     CredentialsEnrollmentCreateRequest:
       type: object
       required: [ nodesId ]
+      additionalProperties: false
       properties:
         ttlSeconds:
           type: integer
@@ -2708,12 +3286,12 @@ components: ###########################################################
           type: array
           description: "List of nodeId for which a enrollment code (for each nodeId) is requested, max 100 nodes per request"
           maxItems: 100
+          example:
+            - "node_ab12cd34ef"
+            - "node_7k2m9q4x1p"
+            - "node_m4z8c1q2wr"
           items:
             type: string
-            example:
-              - "node_ab12cd34ef"
-              - "node_7k2m9q4x1p"
-              - "node_m4z8c1q2wr"
 
     CredentialsEnrollmentCreateResponse:
       type: object
@@ -2750,6 +3328,7 @@ components: ###########################################################
     CredentialsEnrollRequest:
       type: object
       required: [ enrollmentCode ]
+      additionalProperties: false
       properties:
         enrollmentCode:
           type: string
@@ -2800,6 +3379,7 @@ components: ###########################################################
     CredentialsRenewRequest:
       type: object
       required: [ previousCertificatePem ]
+      additionalProperties: false
       properties:
         previousCertificatePem:
           type: string
