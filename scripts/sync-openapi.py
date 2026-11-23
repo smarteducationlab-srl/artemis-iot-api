@@ -7,6 +7,9 @@ from pathlib import Path
 from urllib.request import urlopen
 
 import yaml
+from openapi_spec_validator import validate
+from openapi_spec_validator.exceptions import OpenAPIError
+from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
 
 
 SOURCE = "https://iot.artemis.cnaf.infn.it/lab/openapi.yaml"
@@ -62,6 +65,10 @@ def validate_public_spec(raw):
                 check_references(value)
 
     check_references(spec)
+    try:
+        validate(spec)
+    except (OpenAPIError, OpenAPIValidationError) as exc:
+        raise ValueError("invalid OpenAPI document") from exc
     return spec["info"]["version"], count
 
 
