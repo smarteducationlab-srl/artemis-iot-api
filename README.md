@@ -15,3 +15,6 @@ git diff -- openapi.yaml                # verifica prima di pubblicare
 
 Lo script esegue solo una lettura HTTPS del contratto pubblico: non richiede
 token e non modifica il gateway.
+
+La CI usa `python3 scripts/sync-openapi.py --validate-local`: controlla i
+percorsi pubblici e i riferimenti dello snapshot senza dipendere da CNAF.
